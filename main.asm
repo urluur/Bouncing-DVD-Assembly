@@ -17,7 +17,6 @@ disc1: DB "\x00\x3F\x0F\xFF\x7F\xFF\x7F\xFF\x1F\xFF\x00\x1F\x00\x00\x00\x00\x00\
 disc2: DB "\xFF\xFF\xFF\xFF\xC0\x7F\xC0\x7F\xFF\xFF\xFF\xFF\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";big
 disc3: DB "\xC0\x00\xFF\x80\xFF\xF0\xFF\xF0\xFF\xC0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";help
 
-
 bounces: DB "bounces:"
   DB 0
 corners: DB "corners:"
@@ -35,6 +34,31 @@ color: DB 255
 isr:
   PUSH a
   
+  IN 1
+  CMP A, 4
+  JE serve_gpu
+
+    
+  ; umaknemo zahtevo po prekinitvi tipkovnice
+  
+  IN 5					; kbdstatus
+  CMP A, 2				; preverimo keyup
+  JNE no_keyup
+  IN 6					; preberemo kbddata
+  CMPB AL, ' '			; a je presledek?
+  JNE no_keyup
+  IN 10 ; Get a random color.
+  AND A, 0x00FF
+  MOVB [color], AL
+  CALL show_logo
+  
+no_keyup:
+  IN 6					; pobrise status
+  MOV a, 1				; irq kbd
+  OUT 2					; umaknemo zahtevo
+  JMP isr_return
+  
+serve_gpu:
   MOV C, 0				; steje spremembe strani
   
   ; premaknemo okno horizontal
@@ -94,10 +118,11 @@ skip_normal_inc:
   CALL inc_corners
 skip_inc_corners:
   
-  ; umaknemo zahtevo po prekinitvi
+  ; umaknemo zahtevo po prekinitvi grafike
   MOV a, 4				; irq graficne
   OUT 2					; umaknemo zahtevo
   
+isr_return:
   POP a
   IRET
 
@@ -347,7 +372,7 @@ disc3_set_loop:
   JMP disc3_set_loop
 disc3_set_break:
 
-  MOV a, 4				; irq grafika (prekinitve za gpu)
+  MOV a, 5				; irq grafika (prekinitve za gpu)
   OUT 0 
   STI
   
