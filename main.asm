@@ -36,7 +36,7 @@ isr:
   PUSH a
   
   IN 1
-  CMP A, 4
+  CMP A, 4				; servisiramo tipkovnico ali gpu?
   JE serve_gpu
 
 
@@ -50,24 +50,24 @@ isr:
   IN 6					; preberemo kbddata
   CMPB AL, ' '			; a je presledek?
   JE spacebar
-  CMPB AL, '+'
+  CMPB AL, '+'			; pritisnil +?
   JE plus
-  CMPB AL, '-'
+  CMPB AL, '-'			; pritisnil -?
   JNE kbd_done
 
 ;minus
   MOV C, [speed]
   CMP C, 1
   JBE kbd_done			; pocasnej od 1 ne gre  
-  DEC C
+  DEC C					; zmanjsamo hitrost
   MOV [speed], C
   JMP kbd_done
   
 plus:
   MOV C, [speed]
-  CMP C, 3				; zgornja meja oz stevilo "prestau"
+  CMP C, 10				; zgornja meja oz stevilo "prestau"
   JAE kbd_done			; hitreje od tok ne gre  
-  INC C
+  INC C					; povecamo hitrost
   MOV [speed], C
   JMP kbd_done
   
@@ -145,12 +145,13 @@ skip_normal_inc:
   CALL inc_corners
 skip_inc_corners:
   
+  ; preverimo ce moramo premik se ponovit
   MOV C, [repeat_iter]
   INC C
   MOV [repeat_iter], C
   MOV D, [speed]
   CMP C, D
-  JNE serve_gpu
+  JNE serve_gpu			; premik ponovimo hitrost-krat
   MOV [repeat_iter], 0
   
   ; umaknemo zahtevo po prekinitvi grafike
@@ -210,7 +211,7 @@ inc_c_ret:
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-toggle_x:
+toggle_x:			; obrnemo smer premikanja horizontalno
   POP d
   INC C
   MOV b, [up]
@@ -224,7 +225,7 @@ toggle_x_end:
   PUSH d
   RET
   
-toggle_y:
+toggle_y:			; obrnemo smer premikanja vertikalno
   POP d
   INC C
   MOV b, [left]
@@ -242,7 +243,7 @@ toggle_y_end:
 ;;;; INIT COUNTERS ;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-init_counters:
+init_counters:			; izpisemo nule
   MOVB [0x1008], 0x30
   MOVB [0x1009], 0x30
   MOVB [0x100A], 0x30
