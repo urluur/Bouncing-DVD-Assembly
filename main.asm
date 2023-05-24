@@ -21,8 +21,10 @@ bounces: DB "bounces:"
   DB 0
 corners: DB "corners:"
   DB 0
-  
+
 speed: DW 1
+repeat_iter: DW 0
+
 
 color: DB 255
 
@@ -55,16 +57,16 @@ isr:
 
 ;minus
   MOV C, [speed]
-  CMP C, 0
-  JBE kbd_done			; hitreje od 3 ne gre  
+  CMP C, 1
+  JBE kbd_done			; pocasnej od 1 ne gre  
   DEC C
   MOV [speed], C
   JMP kbd_done
   
 plus:
   MOV C, [speed]
-  CMP C, 3
-  JA kbd_done			; hitreje od 3 ne gre  
+  CMP C, 3				; zgornja meja oz stevilo "prestau"
+  JAE kbd_done			; hitreje od tok ne gre  
   INC C
   MOV [speed], C
   JMP kbd_done
@@ -80,10 +82,8 @@ kbd_done:
   MOV a, 1				; irq kbd
   OUT 2					; umaknemo zahtevo
   JMP isr_return
-
-
-
-
+  
+  
 serve_gpu:
   MOV C, 0				; steje spremembe strani
   
@@ -144,6 +144,14 @@ skip_normal_inc:
   CALL inc_bounces
   CALL inc_corners
 skip_inc_corners:
+  
+  MOV C, [repeat_iter]
+  INC C
+  MOV [repeat_iter], C
+  MOV D, [speed]
+  CMP C, D
+  JNE serve_gpu
+  MOV [repeat_iter], 0
   
   ; umaknemo zahtevo po prekinitvi grafike
   MOV a, 4				; irq graficne
