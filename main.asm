@@ -21,9 +21,8 @@ bounces: DB "bounces:"
   DB 0
 corners: DB "corners:"
   DB 0
-
-bounces_count: DW 0
-corners_count: DW 0
+  
+speed: DW 1
 
 color: DB 255
 
@@ -38,26 +37,53 @@ isr:
   CMP A, 4
   JE serve_gpu
 
+
+
     
   ; umaknemo zahtevo po prekinitvi tipkovnice
   
   IN 5					; kbdstatus
   CMP A, 2				; preverimo keyup
-  JNE no_keyup
+  JNE kbd_done
   IN 6					; preberemo kbddata
   CMPB AL, ' '			; a je presledek?
-  JNE no_keyup
+  JE spacebar
+  CMPB AL, '+'
+  JE plus
+  CMPB AL, '-'
+  JNE kbd_done
+
+;minus
+  MOV C, [speed]
+  CMP C, 0
+  JBE kbd_done			; hitreje od 3 ne gre  
+  DEC C
+  MOV [speed], C
+  JMP kbd_done
+  
+plus:
+  MOV C, [speed]
+  CMP C, 3
+  JA kbd_done			; hitreje od 3 ne gre  
+  INC C
+  MOV [speed], C
+  JMP kbd_done
+  
+spacebar:
   IN 10 ; Get a random color.
   AND A, 0x00FF
   MOVB [color], AL
   CALL show_logo
   
-no_keyup:
+kbd_done:
   IN 6					; pobrise status
   MOV a, 1				; irq kbd
   OUT 2					; umaknemo zahtevo
   JMP isr_return
-  
+
+
+
+
 serve_gpu:
   MOV C, 0				; steje spremembe strani
   
@@ -69,6 +95,7 @@ serve_gpu:
   MOV b, [left]
   CMP b, 1				; ali se premikamo gor
   JNE dec_to_right
+  
   INC a					; dvd se premakne gor
   JMP end_h_move
 dec_to_right:
